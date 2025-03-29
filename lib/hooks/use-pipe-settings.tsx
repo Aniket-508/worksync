@@ -1,38 +1,38 @@
-import { useState, useEffect } from "react";
-import { settingsStore } from "@/lib/hooks/use-settings";
-import type { PipeSettings } from "@/lib/hooks/use-settings";
+import { useEffect, useState } from "react"
+
+import { settingsStore, type PipeSettings } from "@/lib/hooks/use-settings"
 
 export function usePipeSettings(pipeName: string) {
   const [settings, setSettings] = useState<Partial<PipeSettings> | null>(
-    settingsStore.getStore().pipeSettings[pipeName] || null,
-  );
-  const [loading, setLoading] = useState(true);
+    settingsStore.getStore().pipeSettings[pipeName] || null
+  )
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadSettings = async () => {
-      setLoading(true);
-      await settingsStore.loadPipeSettings(pipeName);
-      setLoading(false);
-    };
+      setLoading(true)
+      await settingsStore.loadPipeSettings(pipeName)
+      setLoading(false)
+    }
 
-    loadSettings();
+    loadSettings()
 
     const unsubscribe = settingsStore.subscribe(() => {
-      setSettings(settingsStore.getStore().pipeSettings[pipeName] || null);
-    });
+      setSettings(settingsStore.getStore().pipeSettings[pipeName] || null)
+    })
 
     return () => {
-      unsubscribe();
-    };
-  }, [pipeName]);
+      unsubscribe()
+    }
+  }, [pipeName])
 
   const updateSettings = async (newSettings: Partial<PipeSettings>) => {
-    return settingsStore.updatePipeSettings(pipeName, newSettings);
-  };
+    return settingsStore.updatePipeSettings(pipeName, newSettings)
+  }
 
   const getPreset = (key: keyof PipeSettings = "aiPresetId") => {
-    return settingsStore.getPreset(pipeName, key);
-  };
+    return settingsStore.getPreset(pipeName, key)
+  }
 
-  return { settings, updateSettings, loading, getPreset };
+  return { settings, updateSettings, loading, getPreset }
 }

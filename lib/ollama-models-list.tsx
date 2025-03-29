@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { Loader2, ChevronsUpDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react"
+import { ChevronsUpDown, Loader2 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -8,68 +9,68 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/components/ui/command"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/popover"
 
 interface OllamaModel {
-  name: string;
-  size: number;
-  digest: string;
-  modified_at: string;
+  name: string
+  size: number
+  digest: string
+  modified_at: string
 }
 
 interface Props {
-  defaultValue: string;
-  onChange?: (value: string) => void;
-  disabled?: boolean;
+  defaultValue: string
+  onChange?: (value: string) => void
+  disabled?: boolean
 }
 
 export function OllamaModelsList({ defaultValue, onChange, disabled }: Props) {
-  const [open, setOpen] = useState(false);
-  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [value, setValue] = useState(defaultValue);
+  const [open, setOpen] = useState(false)
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [value, setValue] = useState(defaultValue)
 
   useEffect(() => {
     const fetchOllamaModels = async () => {
       try {
-        const response = await fetch("http://localhost:11434/api/tags");
-        if (!response.ok) throw new Error("failed to fetch ollama models");
-        const data = (await response.json()) as { models: OllamaModel[] };
-        setOllamaModels(data.models || []);
-        setError(null);
+        const response = await fetch("http://localhost:11434/api/tags")
+        if (!response.ok) throw new Error("failed to fetch ollama models")
+        const data = (await response.json()) as { models: OllamaModel[] }
+        setOllamaModels(data.models || [])
+        setError(null)
       } catch (error) {
-        console.error("failed to fetch ollama models:", error);
-        setError("failed to connect to ollama");
-        setOllamaModels([]);
+        console.error("failed to fetch ollama models:", error)
+        setError("failed to connect to ollama")
+        setOllamaModels([])
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchOllamaModels();
-  }, []);
+    fetchOllamaModels()
+  }, [])
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+      <div className="flex h-10 items-center gap-2 rounded-md border px-3">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-muted-foreground">loading models...</span>
       </div>
-    );
+    )
   }
 
   if (error) {
     return (
-      <div className="text-center p-4 text-muted-foreground">
+      <div className="p-4 text-center text-muted-foreground">
         <p>{error}</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -77,7 +78,7 @@ export function OllamaModelsList({ defaultValue, onChange, disabled }: Props) {
       open={open}
       onOpenChange={(isOpen: boolean) => {
         if (!disabled) {
-          setOpen(isOpen);
+          setOpen(isOpen)
         }
       }}
     >
@@ -104,18 +105,18 @@ export function OllamaModelsList({ defaultValue, onChange, disabled }: Props) {
                   key={model.digest}
                   value={model.name}
                   onSelect={(currentValue) => {
-                    setValue(currentValue);
-                    setOpen(false);
+                    setValue(currentValue)
+                    setOpen(false)
                     if (onChange) {
-                      onChange(currentValue);
+                      onChange(currentValue)
                     }
                     const input = document.querySelector(
                       'input[name="aiModel"]'
-                    ) as HTMLInputElement;
-                    if (input) input.value = currentValue;
+                    ) as HTMLInputElement
+                    if (input) input.value = currentValue
                   }}
                 >
-                  <div className="flex items-center justify-between w-full">
+                  <div className="flex w-full items-center justify-between">
                     <span>{model.name}</span>
                     <span className="text-sm text-muted-foreground">
                       {(model.size / 1024 / 1024 / 1024).toFixed(2)} GB
@@ -128,5 +129,5 @@ export function OllamaModelsList({ defaultValue, onChange, disabled }: Props) {
         </Command>
       </PopoverContent>
     </Popover>
-  );
+  )
 }

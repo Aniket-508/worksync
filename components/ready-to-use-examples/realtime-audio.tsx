@@ -1,30 +1,31 @@
-"use client";
+"use client"
 
-import { useEffect, useState, useRef } from "react";
-import { pipe, type TranscriptionChunk } from "@screenpipe/browser";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { useSettings } from "@/lib/settings-provider";
+import { useEffect, useRef, useState } from "react"
+import { pipe, type TranscriptionChunk } from "@screenpipe/browser"
+import { Loader2 } from "lucide-react"
+
+import { useSettings } from "@/lib/settings-provider"
+import { Button } from "@/components/ui/button"
 
 export function RealtimeAudio({
   onDataChange,
 }: {
-  onDataChange?: (data: any, error: string | null) => void;
+  onDataChange?: (data: any, error: string | null) => void
 }) {
-  const { settings } = useSettings();
+  const { settings } = useSettings()
   const [transcription, setTranscription] = useState<TranscriptionChunk | null>(
     null
-  );
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState("");
-  const historyRef = useRef(history);
-  const streamRef = useRef<any>(null);
+  )
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [history, setHistory] = useState("")
+  const historyRef = useRef(history)
+  const streamRef = useRef<any>(null)
 
   // Update ref when history changes
   useEffect(() => {
-    historyRef.current = history;
-  }, [history]);
+    historyRef.current = history
+  }, [history])
 
   const startStreaming = async () => {
     try {
@@ -32,32 +33,32 @@ export function RealtimeAudio({
       console.log("starting audio streaming, settings:", {
         realtimeEnabled: settings?.enableRealtimeAudioTranscription,
         model: settings?.realtimeAudioTranscriptionEngine,
-      });
+      })
 
       // Check if realtime transcription is enabled
       if (!settings?.enableRealtimeAudioTranscription) {
         const errorMessage =
-          "realtime audio transcription is not enabled in settings, go to account-> settings -> recording -> enable realtime audiotranscription -> models to use: screenpipe cloud. Then Refresh. If it doesn't start you might need to restart.";
+          "realtime audio transcription is not enabled in settings, go to account-> settings -> recording -> enable realtime audiotranscription -> models to use: screenpipe cloud. Then Refresh. If it doesn't start you might need to restart."
 
         console.error(
           "streaming failed: realtime audio transcription not enabled in settings"
-        );
-        setError(errorMessage);
+        )
+        setError(errorMessage)
 
         // Pass the error to the parent component
         if (onDataChange) {
-          onDataChange(null, errorMessage);
+          onDataChange(null, errorMessage)
         }
 
-        return; // Exit early
+        return // Exit early
       }
 
-      console.log("realtime audio enabled, attempting to start stream...");
-      setError(null);
-      setIsStreaming(true);
+      console.log("realtime audio enabled, attempting to start stream...")
+      setError(null)
+      setIsStreaming(true)
 
       // Add error handling for the analytics connection issue
-      const originalConsoleError = console.error;
+      const originalConsoleError = console.error
       console.error = function (msg, ...args) {
         // Filter out the analytics connection errors
         if (
@@ -66,17 +67,17 @@ export function RealtimeAudio({
             msg.includes("ERR_CONNECTION_REFUSED"))
         ) {
           // Suppress these specific errors
-          return;
+          return
         }
-        originalConsoleError.apply(console, [msg, ...args]);
-      };
+        originalConsoleError.apply(console, [msg, ...args])
+      }
 
-      const stream = pipe.streamTranscriptions();
-      console.log("stream created successfully");
-      streamRef.current = stream;
+      const stream = pipe.streamTranscriptions()
+      console.log("stream created successfully")
+      streamRef.current = stream
 
       for await (const event of stream) {
-        console.log("received stream event:", event);
+        console.log("received stream event:", event)
         if (event.choices?.[0]?.text) {
           const chunk: TranscriptionChunk = {
             transcription: event.choices[0].text,
@@ -84,63 +85,63 @@ export function RealtimeAudio({
             device: event.metadata?.device || "unknown",
             is_input: event.metadata?.isInput || false,
             is_final: event.choices[0].finish_reason !== null,
-          };
+          }
 
-          setTranscription(chunk);
-          const newHistory = historyRef.current + " " + chunk.transcription;
-          setHistory(newHistory);
+          setTranscription(chunk)
+          const newHistory = historyRef.current + " " + chunk.transcription
+          setHistory(newHistory)
 
           // Pass the raw data to the parent component for display in the raw output tab
           if (onDataChange) {
-            onDataChange(chunk, null);
+            onDataChange(chunk, null)
           }
 
           console.log("transcription:", {
             text: chunk.transcription,
             device: chunk.device,
             isFinal: chunk.is_final,
-          });
+          })
         }
       }
 
       // Restore original console.error
-      console.error = originalConsoleError;
+      console.error = originalConsoleError
     } catch (error) {
-      console.error("audio stream failed:", error);
+      console.error("audio stream failed:", error)
       // Log additional details that might help debugging
       console.error("error details:", {
         name: error instanceof Error ? error.name : "unknown",
         stack: error instanceof Error ? error.stack : "no stack available",
         settings: settings,
-      });
+      })
 
       const errorMessage =
         error instanceof Error
           ? `Failed to stream audio: ${error.message}`
-          : "Failed to stream audio";
-      setError(errorMessage);
+          : "Failed to stream audio"
+      setError(errorMessage)
 
       // Pass the error to the parent component
       if (onDataChange) {
-        onDataChange(null, errorMessage);
+        onDataChange(null, errorMessage)
       }
 
-      setIsStreaming(false);
+      setIsStreaming(false)
     }
-  };
+  }
 
   const stopStreaming = () => {
     if (streamRef.current) {
-      streamRef.current.return?.();
+      streamRef.current.return?.()
     }
-    setIsStreaming(false);
-  };
+    setIsStreaming(false)
+  }
 
   useEffect(() => {
     return () => {
-      stopStreaming();
-    };
-  }, []);
+      stopStreaming()
+    }
+  }, [])
 
   const renderTranscriptionContent = (transcription: TranscriptionChunk) => {
     return (
@@ -168,35 +169,35 @@ export function RealtimeAudio({
           </div>
         </div>
 
-        <div className="bg-slate-100 rounded p-2 overflow-auto max-h-[100px] whitespace-pre-wrap font-mono text-xs">
+        <div className="max-h-[100px] overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2 font-mono text-xs">
           {transcription.transcription}
         </div>
 
         {history && (
           <div className="mt-2">
-            <div className="text-slate-600 font-semibold mb-1">History:</div>
-            <div className="bg-slate-100 rounded p-2 overflow-auto h-[130px] whitespace-pre-wrap font-mono text-xs">
+            <div className="mb-1 font-semibold text-slate-600">History:</div>
+            <div className="h-[130px] overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-2 font-mono text-xs">
               {history}
             </div>
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <div className="space-y-2">
       <div className="flex-col items-center gap-2">
-        <p className="text-xs text-gray-500 font-mono">
+        <p className="font-mono text-xs text-gray-500">
           using model: {settings?.realtimeAudioTranscriptionEngine}
         </p>
-        <p className="text-xs text-gray-500 font-mono">
+        <p className="font-mono text-xs text-gray-500">
           make sure to enable realtime transcription in settings, currently it
           is{" "}
           {settings?.enableRealtimeAudioTranscription ? "enabled" : "disabled"}
         </p>
       </div>
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <Button
           onClick={isStreaming ? stopStreaming : startStreaming}
           size="sm"
@@ -216,8 +217,8 @@ export function RealtimeAudio({
             variant="outline"
             size="sm"
             onClick={() => {
-              navigator.clipboard.writeText(history);
-              setHistory("");
+              navigator.clipboard.writeText(history)
+              setHistory("")
             }}
           >
             Clear History
@@ -228,16 +229,16 @@ export function RealtimeAudio({
       {error && <p className="text-xs text-red-500">{error}</p>}
       {transcription && renderTranscriptionContent(transcription)}
 
-      <div className="flex items-center gap-1.5 text-right justify-end">
+      <div className="flex items-center justify-end gap-1.5 text-right">
         <div
-          className={`w-1.5 h-1.5 rounded-full ${
+          className={`h-1.5 w-1.5 rounded-full ${
             isStreaming ? "bg-green-500" : "bg-gray-400"
           }`}
         />
-        <span className="text-xs text-gray-500 font-mono">
+        <span className="font-mono text-xs text-gray-500">
           {isStreaming ? "streaming" : "stopped"}
         </span>
       </div>
     </div>
-  );
+  )
 }

@@ -1,42 +1,43 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { usePipeSettings } from "./use-pipe-settings";
+import { useState } from "react"
+
+import { usePipeSettings } from "./use-pipe-settings"
 
 export function GenericSettings() {
-  const { settings, updateSettings, loading } = usePipeSettings("example");
-  const [isSaving, setIsSaving] = useState(false);
+  const { settings, updateSettings, loading } = usePipeSettings("example")
+  const [isSaving, setIsSaving] = useState(false)
 
   if (loading) {
-    return <div>loading settings...</div>;
+    return <div>loading settings...</div>
   }
 
   const handleSave = async () => {
-    setIsSaving(true);
+    setIsSaving(true)
     try {
-      await updateSettings(settings!);
-      console.log("settings saved successfully");
+      await updateSettings(settings!)
+      console.log("settings saved successfully")
     } catch (error) {
-      console.error("failed to save settings:", error);
+      console.error("failed to save settings:", error)
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   return (
-    <div className="w-full max-w-2xl p-4 border rounded-lg">
-      <h2 className="text-lg font-medium mb-4">pipe settings</h2>
+    <div className="w-full max-w-2xl rounded-lg border p-4">
+      <h2 className="mb-4 text-lg font-medium">pipe settings</h2>
 
       {/* Add your settings UI here */}
       <div className="space-y-4">
         {/* Example setting field */}
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className="mb-1 block text-sm font-medium">
             example setting
           </label>
           <input
             type="text"
-            className="w-full p-2 border rounded"
+            className="w-full rounded border p-2"
             value={settings?.exampleSetting || ""}
             onChange={(e) =>
               updateSettings({
@@ -50,7 +51,7 @@ export function GenericSettings() {
 
       <div className="mt-4">
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
           onClick={handleSave}
           disabled={isSaving}
         >
@@ -58,5 +59,5 @@ export function GenericSettings() {
         </button>
       </div>
     </div>
-  );
+  )
 }

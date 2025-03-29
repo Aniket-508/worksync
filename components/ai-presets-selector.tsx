@@ -1,6 +1,26 @@
-import { usePipeSettings } from "@/lib/hooks/use-pipe-settings";
-import { useSettings, type PipeSettings } from "@/lib/hooks/use-settings";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react"
+import {
+  Check,
+  ChevronsUpDown,
+  Copy,
+  Edit2,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  Loader2,
+  Plus,
+  Settings,
+  Star,
+  Terminal,
+  Trash2,
+} from "lucide-react"
+import { toast } from "sonner"
+
+import { usePipeSettings } from "@/lib/hooks/use-pipe-settings"
+import { useSettings, type PipeSettings } from "@/lib/hooks/use-settings"
+import { cn } from "@/lib/utils"
+
+import { Button } from "./ui/button"
 import {
   Command,
   CommandEmpty,
@@ -8,50 +28,32 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "./ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+} from "./ui/command"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
-import {
-  Check,
-  ChevronsUpDown,
-  Plus,
-  Copy,
-  Edit2,
-  Star,
-  Trash2,
-  Terminal,
-  Loader2,
-  HelpCircle,
-  Eye,
-  EyeOff,
-  Settings,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "./ui/tooltip";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+} from "./ui/dialog"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Textarea } from "./ui/textarea";
-import { Slider } from "./ui/slider";
+} from "./ui/select"
+import { Slider } from "./ui/slider"
+import { Textarea } from "./ui/textarea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip"
 
 export const Icons = {
   openai: (props: any) => (
@@ -68,82 +70,82 @@ export const Icons = {
   settings: Settings,
   terminal: Terminal,
   spinner: Loader2,
-};
+}
 
 interface BaseAIPreset {
-  id: string;
-  maxContextChars: number;
-  url: string;
-  model: string;
-  defaultPreset: boolean;
-  prompt: string;
+  id: string
+  maxContextChars: number
+  url: string
+  model: string
+  defaultPreset: boolean
+  prompt: string
 }
 
 type AIPreset = BaseAIPreset &
   (
     | {
-        provider: "openai";
-        apiKey: string;
+        provider: "openai"
+        apiKey: string
       }
     | {
-        provider: "native-ollama";
+        provider: "native-ollama"
       }
     | {
-        provider: "screenpipe-cloud";
+        provider: "screenpipe-cloud"
       }
     | {
-        provider: "custom";
-        apiKey?: string;
+        provider: "custom"
+        apiKey?: string
       }
-  );
+  )
 
 interface BaseRecommendedPreset {
-  id: string;
-  maxContextChars: number;
-  model: string;
-  prompt: string;
+  id: string
+  maxContextChars: number
+  model: string
+  prompt: string
 }
 
 type RecommendedPreset = BaseRecommendedPreset &
   (
     | {
-        provider: "openai";
+        provider: "openai"
       }
     | {
-        provider: "native-ollama";
+        provider: "native-ollama"
       }
     | {
-        provider: "screenpipe-cloud";
+        provider: "screenpipe-cloud"
       }
-  );
+  )
 
 interface AIProviderConfigProps {
-  onSubmit: (data: AIProviderData) => void;
+  onSubmit: (data: AIProviderData) => void
   defaultPreset?: {
-    provider: "openai" | "native-ollama" | "custom" | "screenpipe-cloud";
-    apiKey?: string;
-    baseUrl?: string;
-    modelName?: string;
-    maxContextChars?: number;
-    prompt?: string;
-    id?: string;
-  };
+    provider: "openai" | "native-ollama" | "custom" | "screenpipe-cloud"
+    apiKey?: string
+    baseUrl?: string
+    modelName?: string
+    maxContextChars?: number
+    prompt?: string
+    id?: string
+  }
 }
 
 interface AIProviderData {
-  provider: "openai" | "native-ollama" | "custom" | "screenpipe-cloud";
-  apiKey?: string;
-  baseUrl?: string;
-  modelName?: string;
-  maxContextChars?: number;
-  prompt?: string;
-  id?: string;
+  provider: "openai" | "native-ollama" | "custom" | "screenpipe-cloud"
+  apiKey?: string
+  baseUrl?: string
+  modelName?: string
+  maxContextChars?: number
+  prompt?: string
+  id?: string
 }
 
 interface OpenAIModel {
-  id: string;
-  created?: number;
-  owned_by?: string;
+  id: string
+  created?: number
+  owned_by?: string
 }
 
 export const DEFAULT_PROMPT = `Rules:
@@ -151,7 +153,7 @@ export const DEFAULT_PROMPT = `Rules:
 - Do not try to embed video in links (e.g. [](.mp4) or https://.mp4) instead put the file_path in a code block using backticks
 - Do not put video in multiline code block it will not render the video (e.g. \`\`\`bash\n.mp4\`\`\` IS WRONG) instead using inline code block with single backtick
 - Always answer my question/intent, do not make up things
-`;
+`
 
 export function AIProviderConfig({
   onSubmit,
@@ -159,13 +161,13 @@ export function AIProviderConfig({
 }: AIProviderConfigProps) {
   const [selectedProvider, setSelectedProvider] = useState<
     AIProviderData["provider"]
-  >(defaultPreset?.provider || "openai");
-  const { settings } = useSettings();
-  const [isLoading, setIsLoading] = useState(false);
-  const [openaiModels, setOpenAIModels] = useState<OpenAIModel[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
-  const [idError, setIdError] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
+  >(defaultPreset?.provider || "openai")
+  const { settings } = useSettings()
+  const [isLoading, setIsLoading] = useState(false)
+  const [openaiModels, setOpenAIModels] = useState<OpenAIModel[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
+  const [idError, setIdError] = useState<string | null>(null)
+  const [showApiKey, setShowApiKey] = useState(false)
   const [formData, setFormData] = useState<AIProviderData>({
     provider: defaultPreset?.provider || "openai",
     apiKey: defaultPreset?.apiKey || "",
@@ -174,18 +176,18 @@ export function AIProviderConfig({
     maxContextChars: defaultPreset?.maxContextChars || 512000,
     prompt: defaultPreset?.prompt || DEFAULT_PROMPT,
     id: defaultPreset?.id || "",
-  });
+  })
 
   const validateId = (id: string | undefined): boolean => {
     if (!id?.trim()) {
-      setIdError("name is required");
-      return false;
+      setIdError("name is required")
+      return false
     }
 
     // Check if ID ends with 'copy' (case insensitive)
     if (id.trim().toLowerCase().endsWith("copy")) {
-      setIdError("name cannot end with 'copy'");
-      return false;
+      setIdError("name cannot end with 'copy'")
+      return false
     }
 
     // Check for duplicate IDs, excluding the current preset being edited
@@ -193,105 +195,105 @@ export function AIProviderConfig({
       (preset) =>
         preset.id.toLowerCase() === id.toLowerCase() &&
         preset.id !== defaultPreset?.id
-    );
+    )
 
     if (isDuplicate) {
-      setIdError("name already exists");
-      return false;
+      setIdError("name already exists")
+      return false
     }
 
-    setIdError(null);
-    return true;
-  };
+    setIdError(null)
+    return true
+  }
 
   const handleIdChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, id: value }));
-    validateId(value);
-  };
+    setFormData((prev) => ({ ...prev, id: value }))
+    validateId(value)
+  }
 
   const fetchOpenAIModels = async (baseUrl: string, apiKey: string) => {
-    setIsLoadingModels(true);
+    setIsLoadingModels(true)
     try {
       const response = await fetch(`${baseUrl}/models`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("failed to fetch models");
+        throw new Error("failed to fetch models")
       }
 
-      const data = await response.json();
-      setOpenAIModels(data.data || []);
+      const data = await response.json()
+      setOpenAIModels(data.data || [])
     } catch (error) {
-      console.error("error fetching models:", error);
-      setOpenAIModels([]);
+      console.error("error fetching models:", error)
+      setOpenAIModels([])
     } finally {
-      setIsLoadingModels(false);
+      setIsLoadingModels(false)
     }
-  };
+  }
 
   const fetchOllamaModels = async (baseUrl: string) => {
-    setIsLoadingModels(true);
+    setIsLoadingModels(true)
     try {
-      const response = await fetch(`${baseUrl}/models`);
+      const response = await fetch(`${baseUrl}/models`)
 
       if (!response.ok) {
-        throw new Error("failed to fetch ollama models");
+        throw new Error("failed to fetch ollama models")
       }
 
       const data = (await response.json()) as {
-        data: OpenAIModel[];
-      };
-      setOpenAIModels(data.data || []);
+        data: OpenAIModel[]
+      }
+      setOpenAIModels(data.data || [])
     } catch (error) {
-      console.error("error fetching ollama models:", error);
-      setOpenAIModels([]);
+      console.error("error fetching ollama models:", error)
+      setOpenAIModels([])
     } finally {
-      setIsLoadingModels(false);
+      setIsLoadingModels(false)
     }
-  };
+  }
 
   useEffect(() => {
-    setOpenAIModels([]);
+    setOpenAIModels([])
     if (selectedProvider === "openai" && formData.apiKey) {
-      fetchOpenAIModels("https://api.openai.com/v1", formData.apiKey);
+      fetchOpenAIModels("https://api.openai.com/v1", formData.apiKey)
     } else if (selectedProvider === "native-ollama") {
-      const baseUrl = "http://localhost:11434/v1";
-      fetchOllamaModels(baseUrl);
+      const baseUrl = "http://localhost:11434/v1"
+      fetchOllamaModels(baseUrl)
     } else if (selectedProvider === "screenpipe-cloud") {
       fetchOpenAIModels(
         "https://ai-proxy.i-f9f.workers.dev/v1",
         settings?.user?.token ?? ""
-      );
+      )
     } else if (
       selectedProvider === "custom" &&
       formData.baseUrl &&
       formData.apiKey
     ) {
-      fetchOpenAIModels(formData.baseUrl, formData.apiKey);
+      fetchOpenAIModels(formData.baseUrl, formData.apiKey)
     }
-  }, [selectedProvider, formData.apiKey, formData.baseUrl]);
+  }, [selectedProvider, formData.apiKey, formData.baseUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!validateId(formData.id)) {
-      return;
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       onSubmit({
         ...formData,
         id: formData.id?.trim() || "",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="w-full space-y-6 rounded-lg bg-card p-6">
@@ -311,7 +313,7 @@ export function AIProviderConfig({
           <Label htmlFor="name" className="flex items-center gap-2">
             name
             {idError && (
-              <span className="text-xs text-destructive font-normal">
+              <span className="text-xs font-normal text-destructive">
                 {idError}
               </span>
             )}
@@ -342,8 +344,8 @@ export function AIProviderConfig({
             variant={selectedProvider === "openai" ? "default" : "outline"}
             className="flex h-24 flex-col items-center justify-center gap-2"
             onClick={() => {
-              setSelectedProvider("openai");
-              setFormData({ ...formData, provider: "openai" });
+              setSelectedProvider("openai")
+              setFormData({ ...formData, provider: "openai" })
             }}
           >
             <Icons.openai className="h-8 w-8" />
@@ -357,12 +359,12 @@ export function AIProviderConfig({
             }
             className="flex h-24 flex-col items-center justify-center gap-2"
             onClick={() => {
-              setSelectedProvider("native-ollama");
+              setSelectedProvider("native-ollama")
               setFormData({
                 ...formData,
                 provider: "native-ollama",
                 baseUrl: "http://localhost:11434/v1",
-              });
+              })
             }}
           >
             <Icons.terminal className="h-8 w-8" />
@@ -377,18 +379,18 @@ export function AIProviderConfig({
             }
             className="flex h-24 flex-col items-center justify-center gap-2"
             onClick={() => {
-              setSelectedProvider("screenpipe-cloud");
+              setSelectedProvider("screenpipe-cloud")
               setFormData({
                 ...formData,
                 provider: "screenpipe-cloud",
                 baseUrl: "https://ai-proxy.i-f9f.workers.dev/v1",
-              });
+              })
             }}
           >
             <Icons.terminal className="h-8 w-8" />
             <span>screenpipe</span>
             {!settings?.user?.token && (
-              <span className="text-xs text-destructive font-normal">
+              <span className="text-xs font-normal text-destructive">
                 login to screenpipe to use this provider
               </span>
             )}
@@ -399,12 +401,12 @@ export function AIProviderConfig({
             variant={selectedProvider === "custom" ? "default" : "outline"}
             className="flex h-24 flex-col items-center justify-center gap-2"
             onClick={() => {
-              setSelectedProvider("custom");
+              setSelectedProvider("custom")
               setFormData({
                 ...formData,
                 provider: "custom",
                 baseUrl: "http://localhost:11434/v1",
-              });
+              })
             }}
           >
             <Icons.settings className="h-8 w-8" />
@@ -711,21 +713,21 @@ export function AIProviderConfig({
         </Button>
       </form>
     </div>
-  );
+  )
 }
 
 interface AIPresetDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (preset: Partial<AIPreset>) => void;
-  preset?: AIPreset;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave: (preset: Partial<AIPreset>) => void
+  preset?: AIPreset
 }
 
 interface AIPresetsSelectorProps {
-  recommendedPresets?: RecommendedPreset[];
-  pipeName: string;
-  aiKey?: keyof PipeSettings;
-  shortcutKey?: string;
+  recommendedPresets?: RecommendedPreset[]
+  pipeName: string
+  aiKey?: keyof PipeSettings
+  shortcutKey?: string
 }
 
 export const AIPresetDialog = ({
@@ -743,18 +745,18 @@ export const AIPresetDialog = ({
       id: providerData.id,
       maxContextChars: providerData.maxContextChars,
       prompt: providerData.prompt,
-    };
+    }
 
     // Only add apiKey if provider is openai or custom
     if (
       providerData.provider === "openai" ||
       providerData.provider === "custom"
     ) {
-      (newPreset as any).apiKey = providerData.apiKey;
+      ;(newPreset as any).apiKey = providerData.apiKey
     }
 
-    onSave(newPreset);
-  };
+    onSave(newPreset)
+  }
 
   const defaultPreset = preset
     ? {
@@ -764,7 +766,7 @@ export const AIPresetDialog = ({
         modelName: preset.model,
         ...("apiKey" in preset ? { apiKey: preset.apiKey } : {}),
       }
-    : undefined;
+    : undefined
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -785,8 +787,8 @@ export const AIPresetDialog = ({
         />
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}
 
 export const AIPresetsSelector = ({
   recommendedPresets,
@@ -795,64 +797,64 @@ export const AIPresetsSelector = ({
   shortcutKey = "/",
 }: AIPresetsSelectorProps) => {
   const { settings: pipeSettings, updateSettings: updatePipeSettings } =
-    usePipeSettings(pipeName);
-  const { settings, updateSettings } = useSettings();
-  const [open, setOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+    usePipeSettings(pipeName)
+  const { settings, updateSettings } = useSettings()
+  const [open, setOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedPresetToEdit, setSelectedPresetToEdit] = useState<
     AIPreset | undefined
-  >();
+  >()
 
-  const aiPresets = (settings?.aiPresets || []) as AIPreset[];
+  const aiPresets = (settings?.aiPresets || []) as AIPreset[]
 
   const selectedPreset = useMemo(() => {
     const preset = settings?.aiPresets?.find(
       (preset) => preset.id == pipeSettings?.[aiKey]
-    );
+    )
 
-    return preset?.id;
-  }, [settings?.aiPresets, pipeSettings?.[aiKey]]);
+    return preset?.id
+  }, [settings?.aiPresets, pipeSettings?.[aiKey]])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check for Cmd/Ctrl + /
       if ((e.metaKey || e.ctrlKey) && e.key === shortcutKey) {
-        e.preventDefault();
-        if (!aiPresets.length) return;
+        e.preventDefault()
+        if (!aiPresets.length) return
 
         const currentIndex = selectedPreset
           ? aiPresets.findIndex((p) => p.id === selectedPreset)
-          : -1;
-        const nextIndex = (currentIndex + 1) % aiPresets.length;
-        const nextPreset = aiPresets[nextIndex];
+          : -1
+        const nextIndex = (currentIndex + 1) % aiPresets.length
+        const nextPreset = aiPresets[nextIndex]
 
         updatePipeSettings({
           [aiKey]: nextPreset.id,
-        });
+        })
 
         toast.success("Preset changed", {
           description: `Switched to ${nextPreset.id} (${nextPreset.model})`,
-        });
+        })
       }
-    };
+    }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [aiPresets, selectedPreset, updatePipeSettings]);
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [aiPresets, selectedPreset, updatePipeSettings])
 
   const handleSavePreset = (preset: Partial<AIPreset>) => {
     if (!preset.id) {
       toast.error("Please enter a name for this preset", {
         description: "Name is required",
-      });
-      return;
+      })
+      return
     }
 
     if (!settings?.aiPresets) {
       toast.error("Error", {
         description: "Settings not initialized",
-      });
-      return;
+      })
+      return
     }
 
     // If we're editing an existing preset
@@ -865,13 +867,13 @@ export const AIPresetsSelector = ({
         // Check for duplicate ID
         const existingPreset = settings.aiPresets.find(
           (pre) => pre.id === preset.id
-        );
+        )
 
         if (existingPreset) {
           toast.error("Name already exists", {
             description: "Please choose a different name",
-          });
-          return;
+          })
+          return
         }
 
         // Add as new preset
@@ -883,21 +885,21 @@ export const AIPresetsSelector = ({
               defaultPreset: false,
             } as AIPreset,
           ],
-        });
+        })
 
         toast.success("Preset copied", {
           description: "New preset has been created from copy",
-        });
+        })
       } else {
         // Normal edit operation
         const updatedPresets = settings.aiPresets.map((p) =>
           p.id === selectedPresetToEdit.id
             ? ({ ...preset, defaultPreset: p.defaultPreset } as AIPreset)
             : p
-        );
+        )
 
         // If editing the default preset, update the global settings as well
-        const isEditingDefaultPreset = selectedPresetToEdit.defaultPreset;
+        const isEditingDefaultPreset = selectedPresetToEdit.defaultPreset
         if (isEditingDefaultPreset) {
           updateSettings({
             aiPresets: updatedPresets,
@@ -909,28 +911,28 @@ export const AIPresetsSelector = ({
             ...("apiKey" in preset && {
               openaiApiKey: preset.apiKey,
             }),
-          });
+          })
         } else {
           updateSettings({
             aiPresets: updatedPresets,
-          });
+          })
         }
 
         toast.success("Preset updated", {
           description: "Your changes have been saved",
-        });
+        })
       }
     } else {
       // Check for duplicate ID only when creating new preset
       const existingPreset = settings.aiPresets.find(
         (pre) => pre.id === preset.id
-      );
+      )
 
       if (existingPreset) {
         toast.error("Name already exists", {
           description: "Please choose a different name",
-        });
-        return;
+        })
+        return
       }
 
       // Handle first preset creation
@@ -938,7 +940,7 @@ export const AIPresetsSelector = ({
         const newPreset = {
           ...preset,
           defaultPreset: true,
-        } as AIPreset;
+        } as AIPreset
 
         updateSettings({
           aiPresets: [newPreset],
@@ -950,7 +952,7 @@ export const AIPresetsSelector = ({
           ...("apiKey" in newPreset && {
             openaiApiKey: newPreset.apiKey,
           }),
-        });
+        })
       } else {
         // Adding a new preset
         updateSettings({
@@ -961,40 +963,40 @@ export const AIPresetsSelector = ({
               defaultPreset: false,
             } as AIPreset,
           ],
-        });
+        })
       }
 
       toast.success("Preset created", {
         description: "New preset has been added",
-      });
+      })
     }
 
-    setDialogOpen(false);
-    setSelectedPresetToEdit(undefined);
-  };
+    setDialogOpen(false)
+    setSelectedPresetToEdit(undefined)
+  }
 
   const handleDuplicatePreset = (preset: AIPreset) => {
     setSelectedPresetToEdit({
       ...preset,
       id: `${preset.id}-copy`,
       defaultPreset: false,
-    });
-    setDialogOpen(true);
-  };
+    })
+    setDialogOpen(true)
+  }
 
   const handleEditPreset = (preset: AIPreset) => {
-    setSelectedPresetToEdit(preset);
-    setDialogOpen(true);
-  };
+    setSelectedPresetToEdit(preset)
+    setDialogOpen(true)
+  }
 
   const handleSetDefaultPreset = (preset: AIPreset) => {
-    if (!settings?.aiPresets) return;
-    if (preset.defaultPreset) return;
+    if (!settings?.aiPresets) return
+    if (preset.defaultPreset) return
 
     const updatedPresets = settings.aiPresets.map((p) => ({
       ...p,
       defaultPreset: p.id === preset.id,
-    }));
+    }))
 
     updateSettings({
       aiPresets: updatedPresets,
@@ -1006,37 +1008,37 @@ export const AIPresetsSelector = ({
       ...("apiKey" in preset && {
         openaiApiKey: preset.apiKey,
       }),
-    });
+    })
 
     toast.success("Default preset updated", {
       description: `${preset.id} is now the default preset`,
-    });
-  };
+    })
+  }
 
   const handleRemovePreset = (preset: AIPreset) => {
-    if (!settings?.aiPresets) return;
+    if (!settings?.aiPresets) return
     if (preset.defaultPreset) {
       toast.error("Cannot delete default preset", {
         description: "Please set another preset as default first",
-      });
-      return;
+      })
+      return
     }
 
-    const updatedPresets = settings.aiPresets.filter((p) => p.id !== preset.id);
+    const updatedPresets = settings.aiPresets.filter((p) => p.id !== preset.id)
     updateSettings({
       aiPresets: updatedPresets,
-    });
+    })
 
     if (pipeSettings?.[aiKey] === preset.id) {
       updatePipeSettings({
         [aiKey]: "",
-      });
+      })
     }
 
     toast.success("Preset removed", {
       description: `${preset.id} has been removed`,
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -1053,22 +1055,22 @@ export const AIPresetsSelector = ({
                 >
                   {selectedPreset ? (
                     <div className="flex w-full items-center justify-between gap-2 overflow-hidden">
-                      <span className="font-medium min-w-[80px] max-w-[30%] truncate text-left">
+                      <span className="min-w-[80px] max-w-[30%] truncate text-left font-medium">
                         {
                           aiPresets.find(
                             (preset) => preset.id === selectedPreset
                           )?.id
                         }
                       </span>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground overflow-hidden">
-                        <span className="rounded bg-muted px-1.5 py-0.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2 overflow-hidden text-xs text-muted-foreground">
+                        <span className="whitespace-nowrap rounded bg-muted px-1.5 py-0.5">
                           {
                             aiPresets.find(
                               (preset) => preset.id === selectedPreset
                             )?.provider
                           }
                         </span>
-                        <span className="hidden sm:block truncate max-w-[30%]">
+                        <span className="hidden max-w-[30%] truncate sm:block">
                           {
                             aiPresets.find(
                               (preset) => preset.id === selectedPreset
@@ -1094,7 +1096,7 @@ export const AIPresetsSelector = ({
               <TooltipContent>
                 <p className="flex items-center gap-2">
                   <span>Press</span>
-                  <kbd className="px-1.5 py-0.5 text-xs font-semibold bg-muted rounded">
+                  <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold">
                     ⌘/
                   </kbd>
                   <span>to cycle presets</span>
@@ -1102,7 +1104,7 @@ export const AIPresetsSelector = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <PopoverContent className="min-w-[500px] w-[--radix-popover-trigger-width] p-0">
+          <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[500px] p-0">
             <Command>
               <CommandInput placeholder="search presets..." />
               <CommandList>
@@ -1116,7 +1118,7 @@ export const AIPresetsSelector = ({
                         className="flex py-2"
                       >
                         <div className="flex w-full items-center justify-between gap-2 overflow-hidden">
-                          <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                          <div className="flex min-w-0 flex-shrink items-center gap-2">
                             <Check
                               className={cn(
                                 "h-4 w-4 shrink-0",
@@ -1125,19 +1127,19 @@ export const AIPresetsSelector = ({
                                   : "opacity-0"
                               )}
                             />
-                            <span className="font-medium truncate max-w-[30%]">
+                            <span className="max-w-[30%] truncate font-medium">
                               {preset.id}
                             </span>
-                            <span className="rounded bg-primary/10 text-primary px-1.5 py-0.5 text-xs font-medium shrink-0">
+                            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
                               recommended
                             </span>
                           </div>
-                          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground shrink-0">
+                          <div className="flex shrink-0 items-center justify-end gap-2 text-xs text-muted-foreground">
                             <div className="flex items-center gap-2">
-                              <span className="rounded bg-muted px-1.5 py-0.5 whitespace-nowrap">
+                              <span className="whitespace-nowrap rounded bg-muted px-1.5 py-0.5">
                                 {preset.provider}
                               </span>
-                              <span className="hidden sm:block truncate max-w-[30%]">
+                              <span className="hidden max-w-[30%] truncate sm:block">
                                 {preset.model}
                               </span>
                             </div>
@@ -1150,7 +1152,7 @@ export const AIPresetsSelector = ({
                                 size="icon"
                                 className="h-6 w-6 shrink-0"
                                 onClick={(e) => {
-                                  e.stopPropagation();
+                                  e.stopPropagation()
                                   // Create a full preset from the recommended preset with -copy suffix
                                   const fullPreset = {
                                     ...preset,
@@ -1159,14 +1161,14 @@ export const AIPresetsSelector = ({
                                       preset.provider === "openai"
                                         ? "https://api.openai.com/v1"
                                         : preset.provider === "screenpipe-cloud"
-                                        ? "https://ai-proxy.i-f9f.workers.dev/v1"
-                                        : preset.provider === "native-ollama"
-                                        ? "http://localhost:11434/v1"
-                                        : "",
+                                          ? "https://ai-proxy.i-f9f.workers.dev/v1"
+                                          : preset.provider === "native-ollama"
+                                            ? "http://localhost:11434/v1"
+                                            : "",
                                     defaultPreset: false,
-                                  } as AIPreset;
-                                  setSelectedPresetToEdit(fullPreset);
-                                  setDialogOpen(true);
+                                  } as AIPreset
+                                  setSelectedPresetToEdit(fullPreset)
+                                  setDialogOpen(true)
                                 }}
                               >
                                 <Copy className="h-3 w-3" />
@@ -1187,13 +1189,13 @@ export const AIPresetsSelector = ({
                         updatePipeSettings({
                           [aiKey]:
                             currentValue === selectedPreset ? "" : currentValue,
-                        });
-                        setOpen(false);
+                        })
+                        setOpen(false)
                       }}
                       className="flex py-2"
                     >
                       <div className="flex w-full items-center justify-between gap-2 overflow-hidden">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
                           <Check
                             className={cn(
                               "h-4 w-4 shrink-0",
@@ -1202,21 +1204,21 @@ export const AIPresetsSelector = ({
                                 : "opacity-0"
                             )}
                           />
-                          <span className="font-medium truncate max-w-[120px]">
+                          <span className="max-w-[120px] truncate font-medium">
                             {preset.id}
                           </span>
                           {preset.defaultPreset && (
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium shrink-0">
+                            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
                               default
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground shrink-0">
+                        <div className="flex shrink-0 items-center justify-end gap-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
-                            <span className="rounded bg-muted px-1.5 py-0.5 whitespace-nowrap">
+                            <span className="whitespace-nowrap rounded bg-muted px-1.5 py-0.5">
                               {preset.provider}
                             </span>
-                            <span className="truncate max-w-[120px]">
+                            <span className="max-w-[120px] truncate">
                               {preset.model}
                             </span>
                           </div>
@@ -1229,8 +1231,8 @@ export const AIPresetsSelector = ({
                               size="icon"
                               className="h-6 w-6 shrink-0"
                               onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditPreset(preset);
+                                e.stopPropagation()
+                                handleEditPreset(preset)
                               }}
                             >
                               <Edit2 className="h-3 w-3" />
@@ -1240,8 +1242,8 @@ export const AIPresetsSelector = ({
                               size="icon"
                               className="h-6 w-6 shrink-0"
                               onClick={(e) => {
-                                e.stopPropagation();
-                                handleDuplicatePreset(preset);
+                                e.stopPropagation()
+                                handleDuplicatePreset(preset)
                               }}
                             >
                               <Copy className="h-3 w-3" />
@@ -1253,8 +1255,8 @@ export const AIPresetsSelector = ({
                                   size="icon"
                                   className="h-6 w-6 shrink-0"
                                   onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSetDefaultPreset(preset);
+                                    e.stopPropagation()
+                                    handleSetDefaultPreset(preset)
                                   }}
                                 >
                                   <Star className="h-3 w-3" />
@@ -1264,8 +1266,8 @@ export const AIPresetsSelector = ({
                                   size="icon"
                                   className="h-6 w-6 shrink-0"
                                   onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemovePreset(preset);
+                                    e.stopPropagation()
+                                    handleRemovePreset(preset)
                                   }}
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -1281,9 +1283,9 @@ export const AIPresetsSelector = ({
                 <CommandGroup>
                   <CommandItem
                     onSelect={() => {
-                      setOpen(false);
-                      setSelectedPresetToEdit(undefined);
-                      setDialogOpen(true);
+                      setOpen(false)
+                      setSelectedPresetToEdit(undefined)
+                      setDialogOpen(true)
                     }}
                   >
                     <Plus className="mr-2 h-4 w-4" />
@@ -1302,5 +1304,5 @@ export const AIPresetsSelector = ({
         preset={selectedPresetToEdit}
       />
     </>
-  );
-};
+  )
+}

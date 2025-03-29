@@ -1,25 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react"
 
 interface AutocompleteItem {
-  name: string;
-  count: number;
+  name: string
+  count: number
 }
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
 const cache: Record<string, { data: AutocompleteItem[]; timestamp: number }> =
-  {};
+  {}
 
 export function useSqlAutocomplete(type: "app" | "window") {
-  const [items, setItems] = useState<AutocompleteItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [items, setItems] = useState<AutocompleteItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   const fetchItems = useCallback(async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const cachedData = cache[type];
+      const cachedData = cache[type]
       if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-        setItems(cachedData.data);
+        setItems(cachedData.data)
       } else {
         const query = `
           SELECT ${
@@ -31,31 +31,31 @@ export function useSqlAutocomplete(type: "app" | "window") {
           GROUP BY ${type === "app" ? "ocr.app_name" : "ocr.window_name"}
           ORDER BY count DESC
           LIMIT 100
-        `;
+        `
         const response = await fetch("http://localhost:3030/raw_sql", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ query }),
-        });
+        })
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-        const result = await response.json();
-        setItems(result);
-        cache[type] = { data: result, timestamp: Date.now() };
+        const result = await response.json()
+        setItems(result)
+        cache[type] = { data: result, timestamp: Date.now() }
       }
     } catch (error) {
-      console.error("failed to fetch items:", error);
+      console.error("failed to fetch items:", error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [type]);
+  }, [type])
 
   useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+    fetchItems()
+  }, [fetchItems])
 
-  return { items, isLoading };
+  return { items, isLoading }
 }

@@ -1,21 +1,23 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import type { Metadata } from "next"
+
+import "./globals.css"
+
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: "Example Pipe • Screenpipe",
   description: "A clean starting point for your Screenpipe pipe",
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body 
-        className="antialiased min-h-screen bg-background" 
+      <body
+        className="min-h-screen bg-background antialiased"
         suppressHydrationWarning
         data-suppress-hydration-warning={true}
       >
@@ -23,5 +25,5 @@ export default function RootLayout({
         <Toaster />
       </body>
     </html>
-  );
+  )
 }
